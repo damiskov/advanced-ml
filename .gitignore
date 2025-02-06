@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# various stuff
+dgms/arms/results/
+dgms/arms/molecules/
+
 # C extensions
 *.so
 
