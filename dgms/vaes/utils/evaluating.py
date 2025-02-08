@@ -1,10 +1,15 @@
 import torch
+import torch.nn as nn
 import torch.distributions as td
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 
-def evaluate_elbo(model, data_loader, device):
+def evaluate_elbo(
+    model: nn.Module,
+    data_loader: torch.utils.data.DataLoader, 
+    device: str,
+):
     """
     Evaluate the ELBO on the test set.
 
@@ -32,6 +37,7 @@ def evaluate_elbo(model, data_loader, device):
             elbo = model.elbo(x)  # Elbo is mean over batch!
             total_elbo += elbo.sum().item()  # Sum over batch
             num_samples += x.shape[0]  # Count total samples
+    
 
     # NOTE: total_elbo is sum of means over batches. to get mean over entire test set, divide by num_batches.
     avg_elbo = total_elbo / num_batches 

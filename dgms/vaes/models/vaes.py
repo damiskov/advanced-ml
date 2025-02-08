@@ -13,7 +13,7 @@ class VAE(nn.Module):
     """
     Define a Variational Autoencoder (VAE) model.
     """
-    def __init__(self, prior, decoder, encoder, name=None):
+    def __init__(self, prior, decoder, encoder, name="basic_vae"):
         """
         Parameters:
         prior: [torch.nn.Module] 
@@ -28,10 +28,7 @@ class VAE(nn.Module):
         self.prior = prior
         self.decoder = decoder
         self.encoder = encoder
-        if name is not None:
-            self.name = name
-        else:
-            self.name = "basic_vae"
+        self.name=name
 
     def elbo(self, x):
         """
@@ -70,31 +67,21 @@ class VAE(nn.Module):
         return -self.elbo(x)
 
 
-class VAE_MoG(nn.Module):
+class VAE_MoG(VAE):
     """
     VAE with altered ELBO implementation to handle mixture of Gaussians prior.
     """
-    def __init__(self, prior, decoder, encoder, name=None):
+    def __init__(self, prior, decoder, encoder, name="vae_gaussian_output"):
         """
         Parameters:
         prior: [torch.nn.Module] 
-            The Mixture of Gaussians prior distribution over the latent space.
+            The prior distribution over the latent space.
         decoder: [torch.nn.Module]
-            The decoder distribution over the data space.
+            The Gaussian decoder distribution over the data space.
         encoder: [torch.nn.Module]
             The encoder distribution over the latent space.
         """
-        super(VAE_MoG, self).__init__()
-        self.prior = prior  # Mixture of Gaussians prior
-        self.decoder = decoder
-        self.encoder = encoder
-        if name is not None:
-            self.name = name
-        else:
-            self.name = "mog_vae"
-
-
-
+        super().__init__(prior, decoder, encoder, name)
     
     def elbo(self, x, num_samples=1):
         """
@@ -132,23 +119,58 @@ class VAE_MoG(nn.Module):
         
         return elbo
 
-    def sample(self, n_samples=1):
-        """
-        Sample from the model.
-        
-        Parameters:
-        n_samples: [int]
-           Number of samples to generate.
-        """
-        z = self.prior().sample(torch.Size([n_samples]))
-        return self.decoder(z).sample()
     
-    def forward(self, x):
+
+class VAE_gaussian_output(VAE):
+    """
+    Variational Autoencoder (VAE) with a Gaussian output distribution.
+    """
+
+    def __init__(self, prior, decoder, encoder, name="vae_gaussian_output"):
         """
-        Compute the negative ELBO for the given batch of data.
+        Parameters:
+        prior: [torch.nn.Module] 
+            The prior distribution over the latent space.
+        decoder: [torch.nn.Module]
+            The Gaussian decoder distribution over the data space.
+        encoder: [torch.nn.Module]
+            The encoder distribution over the latent space.
+        """
+        super().__init__(prior, decoder, encoder, name)
+
+
+class VAE_CNN(VAE):
+    def __init__(self, prior, decoder, encoder, name="vae_cnn"):
+        """
+        Parameters:
+        prior: [torch.nn.Module] 
+            The prior distribution over the latent space.
+        decoder: [torch.nn.Module]
+            The Gaussian decoder distribution over the data space.
+        encoder: [torch.nn.Module]
+            The encoder distribution over the latent space.
+        """
+        super().__init__(prior, decoder, encoder, name)
+    
+    def elbo(self, x):
+        """
+        Compute the ELBO for the given batch of data.
 
         Parameters:
         x: [torch.Tensor] 
-           A tensor of dimension `(batch_size, feature_dim1, feature_dim2)`
+        A tensor of dimension `(batch_size, feature_dim1, feature_dim2, ...)`
+
+        Returns:
+        elbo: [torch.Tensor]
+        A scalar tensor representing the average ELBO for the batch.
         """
-        return -self.elbo(x)
+        q = self.encoder(x)  # Gaussian posterior q(z | x)
+        z = q.rsample()  # Sample using reparameterization trick
+
+        log_px_given_z = self.decoder(z).log_prob(x)  # Log-likelihood per image
+        kl_div = td.kl_divergence(q, self.prior())  # KL divergence per image
+
+        elbo_per_image = log_px_given_z - kl_div  # Compute ELBO per image
+        elbo = elbo_per_image.mean()  # Take mean over batch
+
+        return elbo
