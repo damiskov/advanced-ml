@@ -5,10 +5,11 @@ __pycache__/
 
 # various stuff
 dgms/arms/results/
-dgms/arms/molecules/
 
 # Models
-*.pt 
+*.pt
+# figures
+*.png
 
 # data
 dgms/vaes/data/continuous_mnist/
