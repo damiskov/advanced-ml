@@ -14,6 +14,7 @@ dgms/arms/results/
 # data
 dgms/vaes/data/continuous_mnist/
 dgms/vaes/data/MNIST/
+dgms/flows/data
 
 # C extensions
 *.so
