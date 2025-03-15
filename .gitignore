@@ -3,18 +3,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# various stuff
-dgms/arms/results/
-
 # Models
 *.pt
 # figures
-*.png
+/dgms/vaes/figs
+/dgms/flows/figs
 
-# data
+
+# Data 
 dgms/vaes/data/continuous_mnist/
 dgms/vaes/data/MNIST/
 dgms/flows/data
+dgms/arms/molecules/
 
 # C extensions
 *.so

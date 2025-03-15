@@ -63,3 +63,31 @@ class MixtureGaussianPrior(nn.Module):
 
         # Construct MoG using MixtureSameFamily
         return td.MixtureSameFamily(mixture_distribution, component_distribution)
+    
+
+
+class SpatialGaussianPrior(nn.Module):
+    def __init__(self, M, spatial_size=(7, 7)):
+        """
+        Define a Gaussian prior distribution with zero mean and unit variance.
+
+        Parameters:
+        M: [int] 
+           Dimension of the latent space.
+        spatial_size: [tuple] 
+           The spatial dimensions of the latent representation.
+        """
+        super().__init__()
+        self.M = M
+        self.spatial_size = spatial_size  # (7, 7) for CNN-based encoding
+        self.mean = nn.Parameter(torch.zeros((self.M, *self.spatial_size)), requires_grad=False)
+        self.std = nn.Parameter(torch.ones((self.M, *self.spatial_size)), requires_grad=False)
+
+    def forward(self):
+        """
+        Return the prior distribution.
+
+        Returns:
+        prior: [torch.distributions.Distribution]
+        """
+        return td.Independent(td.Normal(loc=self.mean, scale=self.std), 3)  # 3D latent space

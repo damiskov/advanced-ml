@@ -1,1 +1,0 @@
-Average ELBO on test set: -206.1988

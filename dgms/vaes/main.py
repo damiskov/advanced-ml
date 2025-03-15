@@ -25,11 +25,11 @@ from models.vaes import (
 )
 from models.decoders import (
     BernoulliDecoder,
-    GaussianDecoder
+    GaussianDecoder,
+    BernoulliDecoderCNN,
 )
 from models.encoders import (
     GaussianEncoder,
-    GaussianEncoderCNN,
 )
 from models.priors import (
     GaussianPrior,
@@ -171,50 +171,65 @@ if __name__ == "__main__":
                 nn.Unflatten(-1, (2, 28, 28)) # Modified to output 2 channels (mean and log-variance)
             )
             
-            
-            # TODO: Implement below
             encoder = GaussianEncoder(encoder_net)
             decoder = GaussianDecoder(decoder_net, M)
             prior = GaussianPrior(M)
             model = VAE_gaussian_output(prior, decoder, encoder).to(device) # Since we are using a simple Gaussian prior we can use the basic VAE model
             
         
-        case 'cnn_encoder_decoder':
+        case 'cnn_encoder':
             # Load MNIST as binarized at 'threshold' and create data loaders
             threshold = 0.5
-            mnist_train_loader = torch.utils.data.DataLoader(datasets.MNIST('data/binary_mnist/', train=True, download=True,
-                                                                            transform=transforms.Compose([transforms.ToTensor(), transforms.Lambda(lambda x: (threshold < x).float().squeeze())])),
-                                                            batch_size=args.batch_size, shuffle=True)
-            mnist_test_loader = torch.utils.data.DataLoader(datasets.MNIST('data/binary_mnist/', train=False, download=True,
-                                                                        transform=transforms.Compose([transforms.ToTensor(), transforms.Lambda(lambda x: (threshold < x).float().squeeze())])),
-                                                            batch_size=args.batch_size, shuffle=True)
-            
+            mnist_train_loader = torch.utils.data.DataLoader(
+                datasets.MNIST(
+                    'data/binary_mnist/', train=True, download=True,
+                    transform=transforms.Compose([
+                        transforms.ToTensor(),  
+                        transforms.Lambda(lambda x: (x > threshold).float())  # Add missing channel dimension
+                    ])
+                ),
+                batch_size=32, shuffle=True
+            )
 
-            # Define convolutional encoder network
+            mnist_test_loader = torch.utils.data.DataLoader(
+                datasets.MNIST(
+                    'data/binary_mnist/', train=False, download=True,
+                    transform=transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Lambda(lambda x: (x > threshold).float())  # Add missing channel dimension
+                    ])
+                ),
+                batch_size=32, shuffle=True
+            )
+
+            # Define encoder and decoder networks
             encoder_net = nn.Sequential(
-                nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, stride=2, padding=1),  # (B, 32, 14, 14)
+                nn.Conv2d(1, 32, kernel_size=4, stride=2, padding=1),  # (batch, 32, 14, 14)
                 nn.ReLU(),
-                nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),  # (B, 64, 7, 7)
+                nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),  # (batch, 64, 7, 7)
                 nn.ReLU(),
-                nn.Flatten(),  # (B, 64*7*7) = (B, 3136)
-                nn.Linear(64 * 7 * 7, M * 2)  # (B, 2M) for mean & log-variance
+                nn.Flatten(),
+                nn.Linear(64 * 7 * 7, 256),
+                nn.ReLU(),
+                nn.Linear(256, 2 * M)  # Output mean and std for the latent space
             )
-
-            # Define convolutional decoder network
             decoder_net = nn.Sequential(
-                nn.Linear(M, 3136),  # (batch_size, 3136)
+                nn.Linear(M, 256),
                 nn.ReLU(),
-                nn.Unflatten(-1, (64, 7, 7)),  # (batch_size, 64, 7, 7)
-                nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),  # (batch_size, 32, 14, 14)
+                nn.Linear(256, 64 * 7 * 7),
                 nn.ReLU(),
-                nn.ConvTranspose2d(32, 1, kernel_size=3, stride=2, padding=1, output_padding=1),  # (batch_size, 1, 28, 28)
+                nn.Unflatten(1, (64, 7, 7)),  # Reshape to match the CNN input shape
+                nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),  # (batch, 32, 14, 14)
+                nn.ReLU(),
+                nn.ConvTranspose2d(32, 1, kernel_size=4, stride=2, padding=1),  # (batch, 1, 28, 28)
             )
-            decoder = BernoulliDecoder(decoder_net)
-            encoder = GaussianEncoderCNN(encoder_net)
-            prior = GaussianPrior(M)
-            model = VAE_CNN(prior, decoder, encoder).to(device)
 
 
+            prior = GaussianPrior(M) # Using a simple Gaussian prior for closed-form KL divergence
+            encoder = GaussianEncoder(encoder_net)
+            decoder = BernoulliDecoderCNN(decoder_net)
+            model = VAE(prior, decoder, encoder).to(device)
+        
     # Run model
     match args.mode:
         case 'train':

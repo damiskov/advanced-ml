@@ -22,7 +22,6 @@ from utils.coupling_layers import MaskedCouplingLayer
 from utils.training import train
 from pytorch_model_summary import summary
 
-
 def build_flow_model(masks, network_type, D, num_hidden):
     """
     Build a flow model with the given masks and network type.
@@ -65,7 +64,6 @@ def build_flow_model(masks, network_type, D, num_hidden):
     print('----------------- Built Model -----------------')
     print(summary(model, torch.zeros((1, D)), show_input=False, show_hierarchical=False))
     return model
-
 
 if __name__ == "__main__":
     import torch.utils.data
@@ -199,9 +197,6 @@ if __name__ == "__main__":
 
         case _:
             raise NotImplementedError(f'Dataset {args.dataset} not implemented')
-
-
-    
     
     # # Make a mask that is 1 for the first half of the features and 0 for the second half
     # mask = torch.zeros((D,))
@@ -216,7 +211,6 @@ if __name__ == "__main__":
     #     # translation_net = BasicTranslationNet(D, num_hidden)
     #     translation_net = DeepTranslationNet(D, 3*num_hidden, 3*2) # Same number of hidden units, double number of layers
     #     transformations.append(MaskedCouplingLayer(scale_net, translation_net, mask))
-
 
 
     # # Define flow model

@@ -41,8 +41,14 @@ class VAE(nn.Module):
            Number of samples to use for the Monte Carlo estimate of the ELBO.
         """
         q = self.encoder(x) # NOTE: Get the Gaussian distribution object over the latent space.
-        z = q.rsample() # NOTE: Here is where the reparameterization trick is used. 
+        z = q.rsample() # NOTE: Here is where the reparameterization trick is used.
+
+        # print(f"x.shape: {x.shape}")
+        # print(f"z.shape: {z.shape}")
+        # print(f"decoder(z).mean.shape: {self.decoder(z).mean.shape}")
+        # print(f"log_prob.shape: {self.decoder(z).log_prob(x).shape}")
         elbo = torch.mean(self.decoder(z).log_prob(x) - td.kl_divergence(q, self.prior()), dim=0)
+
         return elbo
 
     def sample(self, n_samples=1):
@@ -83,7 +89,7 @@ class VAE_MoG(VAE):
         """
         super().__init__(prior, decoder, encoder, name)
     
-    def elbo(self, x, num_samples=1):
+    def elbo(self, x, num_samples=100):
         """
         Compute the ELBO for the given batch of data.
 

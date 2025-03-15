@@ -36,9 +36,6 @@ class MaskedCouplingLayer(nn.Module):
 
         log abs(det J_T(z)) = sum_{i=1}^D (1-b_i) s_i (b * z)
 
-        NOTE: '*' denotes element-wise multiplication.
-
-
         Transform a batch of data through the coupling layer (from the base to data).
 
         Parameters:
@@ -52,8 +49,6 @@ class MaskedCouplingLayer(nn.Module):
         """
         # z = x
         # log_det_J = torch.zeros(x.shape[0])
-
-        # TODO: Implement forward transformation
         b = self.mask
         s = self.scale_net(b * x)
         t = self.translation_net(b * x)
@@ -86,7 +81,6 @@ class MaskedCouplingLayer(nn.Module):
         sum_log_det_J: [torch.Tensor]
             The sum of the log determinants of the Jacobian matrices of the inverse transformations.
         """
-        # TODO: Implement the inverse transformation
         # z = x
         # log_det_J = torch.zeros(x.shape[0])
 
